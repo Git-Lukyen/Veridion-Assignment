@@ -8,7 +8,6 @@ from Scripts import main_script
 class MainMenu:
     output_type = 'parquet'
     running = True
-    scraping = False
     input_file_path = ''
 
     def __init__(self):
@@ -18,7 +17,7 @@ class MainMenu:
 
         # Init window
         self.menu_root = customtkinter.CTk()
-        self.menu_root.geometry("360x500")
+        self.menu_root.geometry("400x500")
         self.menu_root.resizable(False, False)
         self.menu_root.protocol("WM_DELETE_WINDOW", self.close_menu)
 
@@ -62,6 +61,20 @@ class MainMenu:
 
         self.file_type_select.pack()
 
+        self.timeout_label = customtkinter.CTkLabel(master=self.menu_root,
+                                                    text="Request Timeout (seconds): 100\nRecommended: >= 100",
+                                                    font=("Roboto", 16), justify="center")
+        self.timeout_label.pack(pady=(35, 5))
+
+        self.timeout_slider = customtkinter.CTkSlider(master=self.menu_root, from_=1, to=180,
+                                                      fg_color="#5e0023",
+                                                      progress_color="#9e335a",
+                                                      button_color="#750e72",
+                                                      button_hover_color="#750e72",
+                                                      command=self.change_timeout_value)
+        self.timeout_slider.set(100)
+        self.timeout_slider.pack(pady=(10, 0))
+
         self.start_scrape_button = customtkinter.CTkButton(
             self.menu_root,
             height=40,
@@ -103,18 +116,19 @@ class MainMenu:
         if filename != '':
             self.start_scrape_button.configure(state='normal')
             self.input_file_path = filename
-            self.input_file_label.configure(text=filename, font=("Roboto", 12))
+            self.input_file_label.configure(text=filename, font=("Roboto", 11))
+
+    def change_timeout_value(self, value):
+        self.timeout_label.configure(text=f"Request Timeout (seconds): {int(value)}\nRecommended: >= 100")
 
     def start_main_script(self):
-        main_script.start(self.input_file_path, self.file_type_select.get())
+        main_script.start(self.input_file_path, self.file_type_select.get(), int(self.timeout_slider.get()))
         self.start_scrape_button.configure(state='disabled')
         self.stop_scrape_button.configure(state='normal')
-        self.scraping = True
 
     def stop_main_script(self):
         self.start_scrape_button.configure(state='normal')
         self.stop_scrape_button.configure(state='disabled')
-        self.scraping = False
 
     def update_menu(self):
         self.menu_root.update()
@@ -129,7 +143,9 @@ def main():
 
     while main_menu.running:
         main_menu.update_menu()
-        main_script.update(main_menu.scraping)
+        resp = main_script.update()
+        if resp == 1:
+            main_menu.stop_main_script()
 
 
 if __name__ == '__main__':

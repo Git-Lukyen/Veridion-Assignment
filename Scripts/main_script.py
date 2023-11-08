@@ -6,15 +6,18 @@ from Util import get_pages_async as gca
 
 links = []
 results = []
+failed = []
 output_type = 'parquet'
 index = 0
+scraping = False
 
 
-def start(input_path, type):
-    global links, output_type, index, results
+def start(input_path, type, timeout):
+    global links, output_type, index, results, scraping
 
     # Reset current index back to 0
     index = 0
+    scraping = True
 
     # Initialize location scraper based on settings
     address_fetcher.start()
@@ -24,24 +27,29 @@ def start(input_path, type):
     output_type = type
 
     # Get page content async
-    results = asyncio.run(gca.get_pages(links))
+    results = asyncio.run(gca.get_pages(links[:10], timeout))
     print(results)
 
 
 def finish():
-    pass
+    global scraping
+    scraping = False
+
+    return 1
 
 
-def update(state):
-    if not state:
+def update():
+    if not scraping:
         return
 
     global index
 
-    url_to_scrape = links[index]
+    if index == len(results):
+        return finish()
+
     page_to_scrape = results[index]
     index += 1
 
-    address = address_fetcher.scrape_page(page_to_scrape, url_to_scrape)
+    address = address_fetcher.scrape_page(page_to_scrape)
     if address is not None:
         print(address)

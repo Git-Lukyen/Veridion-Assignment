@@ -1,6 +1,7 @@
 import asyncio
 
 import aiohttp
+import httpx
 
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
 headers = {
@@ -8,10 +9,11 @@ headers = {
 }
 
 
-async def get_pages(links):
-    async with aiohttp.ClientSession() as session:
-        tasks = [asyncio.create_task(session.get(link, headers=headers, timeout=5, ssl=False)) for link in links]
-        results = []
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+async def get_pages(links, timeout):
+    limits = httpx.Limits(max_keepalive_connections=100, max_connections=3000)
+    async with httpx.AsyncClient(headers=headers, verify=False, follow_redirects=True, limits=limits,
+                                 timeout=timeout) as client:
+        reqs = [client.get(link, timeout=20) for link in links]
+        results = await asyncio.gather(*reqs, return_exceptions=True)
 
-        return results
+    return results
