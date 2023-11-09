@@ -26,7 +26,8 @@ class MainMenu:
         self.menu_root.iconbitmap("program_icon.ico")
 
         # Setting top title
-        self.app_title = customtkinter.CTkLabel(master=self.menu_root, text="COMPANY ADDRESS SCRAPER",
+        self.app_title = customtkinter.CTkLabel(master=self.menu_root,
+                                                text="COMPANY ADDRESS SCRAPER",
                                                 font=("Roboto", 24))
         self.app_title.pack(pady=10)
 
@@ -45,28 +46,39 @@ class MainMenu:
 
         self.input_file_label = customtkinter.CTkLabel(master=self.menu_root,
                                                        text="No File Selected ( .parquet required )",
-                                                       font=("Roboto", 16), justify="center")
+                                                       font=("Roboto", 16),
+                                                       justify="center")
         self.input_file_label.pack()
 
-        self.output_type_label = customtkinter.CTkLabel(master=self.menu_root, text="Select Output Type: ",
-                                                        font=("Roboto", 16), justify="center")
+        self.output_type_label = customtkinter.CTkLabel(master=self.menu_root,
+                                                        text="Select Output Type: ",
+                                                        font=("Roboto", 16),
+                                                        justify="center")
         self.output_type_label.pack(pady=(25, 5))
 
-        self.file_type_select = customtkinter.CTkComboBox(master=self.menu_root, values=["parquet", "json"],
-                                                          font=("Roboto", 14), dropdown_font=("Roboto", 14),
-                                                          height=30, width=150, fg_color='#5e0023',
-                                                          dropdown_fg_color='#5e0023', bg_color='#5e0023',
-                                                          border_color='#5e0023', dropdown_hover_color='#630a2b',
-                                                          button_color='#5e0023', button_hover_color='#630a2b')
+        self.file_type_select = customtkinter.CTkComboBox(master=self.menu_root,
+                                                          values=["parquet", "json"],
+                                                          font=("Roboto", 14),
+                                                          dropdown_font=("Roboto", 14),
+                                                          height=30, width=150,
+                                                          fg_color='#5e0023',
+                                                          dropdown_fg_color='#5e0023',
+                                                          bg_color='#5e0023',
+                                                          border_color='#5e0023',
+                                                          dropdown_hover_color='#630a2b',
+                                                          button_color='#5e0023',
+                                                          button_hover_color='#630a2b')
 
         self.file_type_select.pack()
 
         self.timeout_label = customtkinter.CTkLabel(master=self.menu_root,
                                                     text="Request Timeout (seconds): 100\nRecommended: >= 100",
-                                                    font=("Roboto", 16), justify="center")
+                                                    font=("Roboto", 16),
+                                                    justify="center")
         self.timeout_label.pack(pady=(35, 5))
 
-        self.timeout_slider = customtkinter.CTkSlider(master=self.menu_root, from_=1, to=180,
+        self.timeout_slider = customtkinter.CTkSlider(master=self.menu_root,
+                                                      from_=1, to=180,
                                                       fg_color="#5e0023",
                                                       progress_color="#9e335a",
                                                       button_color="#750e72",
@@ -74,6 +86,21 @@ class MainMenu:
                                                       command=self.change_timeout_value)
         self.timeout_slider.set(100)
         self.timeout_slider.pack(pady=(10, 0))
+
+        self.retry_failed_checkbox = customtkinter.CTkCheckBox(master=self.menu_root,
+                                                               text=" Retry Failed Connections",
+                                                               font=("Roboto", 16),
+                                                               fg_color="#5e0023",
+                                                               hover_color="#630a2b")
+        self.retry_failed_checkbox.pack(pady=(35, 5))
+
+        self.search_links_checkbox = customtkinter.CTkCheckBox(master=self.menu_root,
+                                                               text=" Search Links in Page",
+                                                               font=("Roboto", 16),
+                                                               fg_color="#5e0023",
+                                                               hover_color="#630a2b")
+        self.search_links_checkbox.select()
+        self.search_links_checkbox.pack(pady=(10, 5))
 
         self.start_scrape_button = customtkinter.CTkButton(
             self.menu_root,
@@ -87,7 +114,7 @@ class MainMenu:
             state='disabled'
         )
 
-        self.start_scrape_button.pack(pady=(50, 0))
+        self.start_scrape_button.pack(pady=(25, 0))
 
         self.stop_scrape_button = customtkinter.CTkButton(
             self.menu_root,
@@ -101,7 +128,7 @@ class MainMenu:
             state='disabled'
         )
 
-        self.stop_scrape_button.pack(pady=(15, 15))
+        # self.stop_scrape_button.pack(pady=(15, 15))
 
     def open_input_file_dialog(self):
         filetypes = [
@@ -122,7 +149,12 @@ class MainMenu:
         self.timeout_label.configure(text=f"Request Timeout (seconds): {int(value)}\nRecommended: >= 100")
 
     def start_main_script(self):
-        main_script.start(self.input_file_path, self.file_type_select.get(), int(self.timeout_slider.get()))
+        main_script.start(self.input_file_path,
+                          self.file_type_select.get(),
+                          int(self.timeout_slider.get()),
+                          _scraping_aux=int(self.search_links_checkbox.get()),
+                          _scraping_failed=int(self.retry_failed_checkbox.get()))
+
         self.start_scrape_button.configure(state='disabled')
         self.stop_scrape_button.configure(state='normal')
 
