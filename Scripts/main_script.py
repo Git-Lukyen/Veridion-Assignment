@@ -27,7 +27,7 @@ def start(input_path, type, timeout):
     output_type = type
 
     # Get page content async
-    results = asyncio.run(gca.get_pages(links[:10], timeout))
+    results = asyncio.run(gca.get_pages(links[:20], timeout))
     print(results)
 
 
@@ -52,4 +52,4 @@ def update():
 
     address = address_fetcher.scrape_page(page_to_scrape)
     if address is not None:
-        print(address)
+        print(vars(address))

@@ -11,8 +11,10 @@ headers = {
 
 zipcode_regex_pattern = re.compile(r", [a-zA-Z]{2} \d{4,6}(?:\s|$)")
 street_regex_pattern = re.compile(
-    r"(?i)(\d{2,7})+ +(\w{3,25})+ +((?:road|rd|way|street|st|str|avenue|ave|boulevard|blvd|lane|ln|drive|dr|terrace|ter|place|pl|court|ct)(?:\.)?(?:\s|\,|$))")
+    r"(?i)(\d{2,7}\b)\s+(.{2,30}\b)\s+((?:road|rd|way|street|st|str|avenue|ave|boulevard|blvd|lane|ln|drive|dr|terrace|ter|place|pl|court|ct)(?:\.)?)")
 number_regex_pattern = re.compile(r"\d+")
+rnumber_regex_pattern = re.compile(r"\d+")
+pobox_regex_pattern = re.compile(r"(?i)(?:po|p.o.)+ +(?:box)")
 
 geopy.geocoders.options.default_user_agent = "Company-Location-Finder"
 geolocator = Nominatim()
@@ -33,28 +35,28 @@ def create_final_address(adr_by_street, adr_by_zipcode, street, zipcode):
     if not adr_by_street and not adr_by_zipcode:
         return None
 
-    if not adr_by_street:
-        adr_by_street = adr_by_zipcode
-    elif not adr_by_zipcode:
-        adr_by_zipcode = adr_by_street
+    if adr_by_street:
+        adr_by_street = adr_by_street.raw['address']
+    if adr_by_zipcode:
+        adr_by_zipcode = adr_by_zipcode.raw['address']
 
     final_address = CompanyAddress()
 
     final_address.country = choose_field(adr_by_street, adr_by_zipcode, 'country', False)
     if final_address.country == 'United States':
-        final_address.state = choose_field(adr_by_street, adr_by_zipcode, 'state', True)
+        final_address.state = choose_field(adr_by_street, adr_by_zipcode, 'state', False)
 
     final_address.region = choose_field(adr_by_street, adr_by_zipcode, 'county', False)
     final_address.city = choose_field(adr_by_street, adr_by_zipcode, 'city', False)
 
     if zipcode:
-        final_address.postcode = re.search(number_regex_pattern, zipcode).string
+        final_address.postcode = re.search(number_regex_pattern, zipcode[len(zipcode) - 7:]).group(0)
     else:
         final_address.postcode = choose_field(adr_by_street, adr_by_zipcode, 'postcode', False)
 
     if street:
         final_address.road = re.sub(number_regex_pattern, '', street)
-        final_address.road_numbers = re.search(number_regex_pattern, street).string
+        final_address.road_numbers = re.search(number_regex_pattern, street).group(0)
     else:
         final_address.road = choose_field(adr_by_street, adr_by_zipcode, 'road', True)
 
@@ -63,9 +65,9 @@ def create_final_address(adr_by_street, adr_by_zipcode, street, zipcode):
 
 def choose_field(dict1, dict2, field, prio_first):
     field1, field2 = None, None
-    if field in dict1:
+    if dict1 and field in dict1:
         field1 = dict1[field]
-    if field in dict2:
+    if dict2 and field in dict2:
         field2 = dict2[field]
 
     if field1 and field2:
@@ -88,26 +90,27 @@ def scrape_page(page):
     try:
         status_code = page.status_code
         if status_code != 200:
-            print(f"Page doesn't have status code 200! {page.url}")
+            print(f"Page doesn't have status code 200! {page.request.url}")
             return None
     except:
-        print(f"Couldn't get response fields? {page.url}")
+        print(f"Couldn't get response fields? {page.request.url}")
         return None
 
     url = page.url
 
     soup = BeautifulSoup(page.text, 'lxml')
 
-    final_street = soup.find_all(string=street_regex_pattern, limit=1)
+    final_street = [val for val in soup.find_all(string=street_regex_pattern) if len(val) <= 100]
     if final_street:
-        final_street = re.search(street_regex_pattern, final_street[0].text).string
+        final_street = re.search(street_regex_pattern, final_street[0].text).group(0)
+        final_street = re.sub(pobox_regex_pattern, '', final_street)
 
-    final_zipcode = soup.find_all(string=zipcode_regex_pattern, limit=1)
+    final_zipcode = [val for val in soup.find_all(string=zipcode_regex_pattern) if len(val) <= 100]
     if final_zipcode:
-        final_zipcode = re.search(zipcode_regex_pattern, final_zipcode[0].text).string
+        final_zipcode = re.search(zipcode_regex_pattern, final_zipcode[0].text).string.strip()
+        final_zipcode = re.sub(pobox_regex_pattern, '', final_zipcode)
 
     global geolocator
-    final_address = None
 
     adr_by_street, adr_by_zipcode = None, None
     if final_street:
