@@ -1,4 +1,5 @@
 import asyncio
+import time
 import tkinter
 import customtkinter
 from tkinter import filedialog as fd
@@ -17,7 +18,7 @@ class MainMenu:
 
         # Init window
         self.menu_root = customtkinter.CTk()
-        self.menu_root.geometry("400x500")
+        self.menu_root.geometry("400x550")
         self.menu_root.resizable(False, False)
         self.menu_root.protocol("WM_DELETE_WINDOW", self.close_menu)
 
@@ -102,6 +103,12 @@ class MainMenu:
         self.search_links_checkbox.select()
         self.search_links_checkbox.pack(pady=(10, 5))
 
+        self.status_label = customtkinter.CTkLabel(master=self.menu_root,
+                                                   text="Program Not Started",
+                                                   font=("Roboto", 16),
+                                                   justify="center")
+        self.status_label.pack(pady=(25, 5))
+
         self.start_scrape_button = customtkinter.CTkButton(
             self.menu_root,
             height=40,
@@ -114,7 +121,7 @@ class MainMenu:
             state='disabled'
         )
 
-        self.start_scrape_button.pack(pady=(25, 0))
+        self.start_scrape_button.pack(pady=(5, 0))
 
         self.stop_scrape_button = customtkinter.CTkButton(
             self.menu_root,
@@ -152,6 +159,7 @@ class MainMenu:
         main_script.start(self.input_file_path,
                           self.file_type_select.get(),
                           int(self.timeout_slider.get()),
+                          _menu_ref=self,
                           _scraping_aux=int(self.search_links_checkbox.get()),
                           _scraping_failed=int(self.retry_failed_checkbox.get()))
 
@@ -176,8 +184,11 @@ def main():
     while main_menu.running:
         main_menu.update_menu()
         resp = main_script.update()
+
         if resp == 1:
             main_menu.stop_main_script()
+            time.sleep(3)
+            main_menu.close_menu()
 
 
 if __name__ == '__main__':

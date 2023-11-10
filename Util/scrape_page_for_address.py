@@ -9,12 +9,12 @@ headers = {
     'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
 }
 
-zipcode_regex_pattern = re.compile(r", [a-zA-Z]{2} \d{4,6}(?:\s|$)")
+zipcode_regex_pattern = re.compile(r"(^|\s)[a-zA-Z]{2} \d{4,6}(?:\s|$)")
 street_regex_pattern = re.compile(
-    r"(?i)(\d{2,7}\b)\s+(.{2,30}\b)\s+((?:road|rd|way|street|st|str|avenue|ave|boulevard|blvd|lane|ln|drive|dr|terrace|ter|place|pl|court|ct)(?:\.)?)")
+    r"(?i)(^|\s)\d{2,7}\b\s+.{5,30}\b\s+(?:road|rd|way|street|st|str|avenue|ave|boulevard|blvd|lane|ln|drive|dr|terrace|ter|place|pl|court|ct)(?:\.|\s|$)")
 number_regex_pattern = re.compile(r"\d+")
 rnumber_regex_pattern = re.compile(r"\d+")
-pobox_regex_pattern = re.compile(r"(?i)(?:po|p.o.)+ +(?:box)")
+pobox_regex_pattern = re.compile(r"(?i)(?:po|p.o.)\s+(?:box)")
 
 geopy.geocoders.options.default_user_agent = "Company-Location-Finder"
 geolocator = Nominatim()
@@ -80,10 +80,17 @@ def scrape_page(page):
 
     if final_address is None:
         print(f"Didn't get address for this page... will try other links. {url}")
-        aux_links = [link['href'] for link in soup.find_all("a", href=True) if re.search(f"{url}.{{2,}}", link['href'])]
+        aux_links = [mod_href(url, link['href']) for link in soup.find_all("a", href=True)]
         return ResponseObj(_failed=False, _url=url, _found_adr=None, _aux_links=aux_links)
 
     return ResponseObj(False, _url=url, _found_adr=True, _address=final_address)
+
+
+def mod_href(url, href):
+    if href[0] == '/':
+        return url.join(href)
+    elif re.search(f"{url}.{{2,}}", href):
+        return href
 
 
 def create_final_address(adr_by_street, adr_by_zipcode, street, zipcode):

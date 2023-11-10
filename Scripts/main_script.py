@@ -1,8 +1,10 @@
 import asyncio
+import time
 
 from Util.get_links_from_file import get_links
 from Util import scrape_page_for_address as address_fetcher
 from Util import get_pages_async as gca
+from Util import create_output_file as cof
 
 links = []
 responses = []
@@ -19,8 +21,12 @@ scraping = False
 scraping_aux = False
 scraping_failed = False
 
+__menu_ref = None
 
-def start(input_path, _type, _timeout, _scraping_aux=True, _scraping_failed=False):
+
+def start(input_path, _type, _timeout, _menu_ref, _scraping_aux=True, _scraping_failed=False):
+    global __menu_ref
+    __menu_ref = _menu_ref
     # Reset current index back to 0
     global index, scraping, scraping_aux, scraping_failed
     index = 0
@@ -39,29 +45,49 @@ def start(input_path, _type, _timeout, _scraping_aux=True, _scraping_failed=Fals
 
     # Get page content async
     global responses
+
+    update_status("Fetching pages from urls, please wait.")
+
     responses = asyncio.run(gca.get_pages(links[:20], timeout))
+
+    update_status("Finding addresses...")
 
 
 def finish():
     global scraping, scraping_aux, scraping_failed, responses, index
 
     if scraping_failed:
+        update_status("Trying failed links...")
+        time.sleep(3)
+
         index = 0
         scraping_failed = False
 
         global failed_links
         responses = asyncio.run(gca.get_pages(failed_links, timeout))
+
+        update_status("Finding addresses...")
         return
 
     if scraping_aux:
+        update_status("Trying auxiliary links...")
+        time.sleep(3)
+
         index = 0
         scraping_aux = False
 
         global aux_links
         responses = asyncio.run(gca.get_pages(aux_links, timeout))
+
+        update_status("Finding addresses...")
         return
 
     scraping = False
+
+    update_status("Creating output file...")
+    cof.create_output_file(output_type, found_addresses)
+
+    update_status("Program finished. Closing in 3 seconds.")
 
     return 1
 
@@ -92,3 +118,10 @@ def update():
         aux_links.extend(result.aux_links)
     elif result.found_adr:
         found_addresses[result.url.host] = result.address
+
+
+def update_status(status):
+    global __menu_ref
+
+    __menu_ref.status_label.configure(text=status)
+    __menu_ref.update_menu()

@@ -10,6 +10,7 @@ import os
 #
 # df.to_parquet("dataframe.parquet")
 
-string = "badums"
-
-print(f"{string}.{{2,}}")
+str = 'www.google.com'
+str2 = 'www.google.com/home'
+res = re.search(f"{str}.{{2,}}", str2)
+print(res)
