@@ -64,23 +64,33 @@ def scrape_page(page):
         final_street = re.sub(pobox_regex_pattern, '', final_street)
 
     final_zipcode = [val for val in soup.find_all(string=zipcode_regex_pattern) if len(val) <= 100]
-    if final_zipcode:
-        final_zipcode = re.search(zipcode_regex_pattern, final_zipcode[0].text).string.strip()
-        final_zipcode = re.sub(pobox_regex_pattern, '', final_zipcode)
 
-    global geolocator
+    if final_zipcode:
+        try:
+            final_zipcode = re.search(zipcode_regex_pattern, final_zipcode[0].text).string.strip()
+        except:
+            final_zipcode = re.search(zipcode_regex_pattern, final_zipcode[0]).string.strip()
+
+        final_zipcode = re.sub(pobox_regex_pattern, '', final_zipcode)
 
     adr_by_street, adr_by_zipcode = None, None
     if final_street:
-        adr_by_street = geolocator.geocode(final_street, addressdetails=True)
+        adr_by_street = geocode_address(final_street)
     if final_zipcode:
-        adr_by_zipcode = geolocator.geocode(final_zipcode, addressdetails=True)
+        adr_by_zipcode = geocode_address(final_zipcode)
 
     final_address = create_final_address(adr_by_street, adr_by_zipcode, final_street, final_zipcode)
 
     if final_address is None:
         print(f"Didn't get address for this page... will try other links. {url}")
-        aux_links = [mod_href(url, link['href']) for link in soup.find_all("a", href=True)]
+        aux_links = None
+
+        try:
+            aux_links = [mod_href(url, link['href']) for link in soup.find_all("a", href=True)]
+            aux_links = [link for link in aux_links if link is not None]
+        except:
+            print(f"!! couldn't get hrefs for {url}")
+
         return ResponseObj(_failed=False, _url=url, _found_adr=None, _aux_links=aux_links)
 
     return ResponseObj(False, _url=url, _found_adr=True, _address=final_address)
@@ -91,6 +101,17 @@ def mod_href(url, href):
         return url.join(href)
     elif re.search(f"{url}.{{2,}}", href):
         return href
+
+
+def geocode_address(query):
+    global geolocator
+
+    try:
+        address = geolocator.geocode(query, addressdetails=True, timeout=2)
+        return address
+    except:
+        print(f"Query failed: {query}")
+        return None
 
 
 def create_final_address(adr_by_street, adr_by_zipcode, street, zipcode):
@@ -112,7 +133,7 @@ def create_final_address(adr_by_street, adr_by_zipcode, street, zipcode):
     final_address.city = choose_field(adr_by_street, adr_by_zipcode, 'city', False)
 
     if zipcode:
-        final_address.postcode = re.search(number_regex_pattern, zipcode[len(zipcode) - 7:]).group(0)
+        final_address.postcode = re.findall(number_regex_pattern, zipcode)[-1]
     else:
         final_address.postcode = choose_field(adr_by_street, adr_by_zipcode, 'postcode', False)
 

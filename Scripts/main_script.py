@@ -46,11 +46,22 @@ def start(input_path, _type, _timeout, _menu_ref, _scraping_aux=True, _scraping_
     # Get page content async
     global responses
 
-    update_status("Fetching pages from urls, please wait.")
+    responses = get_responses(links, timeout)
 
-    responses = asyncio.run(gca.get_pages(links[:20], timeout))
+
+def get_responses(_links, _timeout):
+    update_status("Fetching pages from urls, please wait.")
+    _responses = []
+
+    for i in range(500, 500000, 500):
+        temp = asyncio.run(gca.get_pages(_links[max(0, i - 500): min(i, len(_links))], _timeout))
+        _responses.extend(temp)
+
+        if i >= len(_links):
+            break
 
     update_status("Finding addresses...")
+    return _responses
 
 
 def finish():
@@ -64,7 +75,7 @@ def finish():
         scraping_failed = False
 
         global failed_links
-        responses = asyncio.run(gca.get_pages(failed_links, timeout))
+        responses = get_responses(failed_links, timeout)
 
         update_status("Finding addresses...")
         return
@@ -77,7 +88,7 @@ def finish():
         scraping_aux = False
 
         global aux_links
-        responses = asyncio.run(gca.get_pages(aux_links, timeout))
+        responses = get_responses(aux_links, timeout)
 
         update_status("Finding addresses...")
         return
@@ -114,7 +125,7 @@ def update():
 
     if result.failed:
         failed_links.append(result.url)
-    elif not result.found_adr and result.aux_links:
+    elif not result.found_adr and result.aux_links and scraping_aux:
         aux_links.extend(result.aux_links)
     elif result.found_adr:
         found_addresses[result.url.host] = result.address

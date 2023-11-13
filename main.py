@@ -10,6 +10,7 @@ class MainMenu:
     output_type = 'parquet'
     running = True
     input_file_path = ''
+    start_time = time.time()
 
     def __init__(self):
         # Init theme
@@ -156,6 +157,8 @@ class MainMenu:
         self.timeout_label.configure(text=f"Request Timeout (seconds): {int(value)}\nRecommended: >= 100")
 
     def start_main_script(self):
+        self.start_time = time.time()
+
         main_script.start(self.input_file_path,
                           self.file_type_select.get(),
                           int(self.timeout_slider.get()),
@@ -187,6 +190,8 @@ def main():
 
         if resp == 1:
             main_menu.stop_main_script()
+            print(f"Final time: {time.time() - main_menu.start_time}")
+
             time.sleep(3)
             main_menu.close_menu()
 
