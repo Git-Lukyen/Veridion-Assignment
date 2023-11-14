@@ -1,7 +1,7 @@
 import pandas as pd
 import scraping_test
 
-filename = "../links.snappy.parquet"
+filename = "../Input_Files/links.snappy.parquet"
 df = pd.read_parquet(filename)
 
 for link in df.values:

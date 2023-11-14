@@ -50,6 +50,7 @@ def start(input_path, _type, _timeout, _menu_ref, _scraping_aux=True, _scraping_
 
 
 def get_responses(_links, _timeout):
+    _links = _links[:20]
     update_status("Fetching pages from urls, please wait.")
     _responses = []
 
@@ -123,9 +124,9 @@ def update():
 
     result = address_fetcher.scrape_page(page_to_scrape)
 
-    if result.failed:
+    if scraping_failed and result.failed:
         failed_links.append(result.url)
-    elif not result.found_adr and result.aux_links and scraping_aux:
+    elif scraping_aux and not result.found_adr and result.aux_links:
         aux_links.extend(result.aux_links)
     elif result.found_adr:
         found_addresses[result.url.host] = result.address

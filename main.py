@@ -27,12 +27,13 @@ class MainMenu:
         self.menu_root.title("Company Address Scraper")
         self.menu_root.iconbitmap("program_icon.ico")
 
-        # Setting top title
+        # Set top title
         self.app_title = customtkinter.CTkLabel(master=self.menu_root,
                                                 text="COMPANY ADDRESS SCRAPER",
                                                 font=("Roboto", 24))
         self.app_title.pack(pady=10)
 
+        # Set the input file path button
         self.open_input_selector_button = customtkinter.CTkButton(
             self.menu_root,
             height=30,
@@ -46,18 +47,21 @@ class MainMenu:
 
         self.open_input_selector_button.pack(pady=(15, 3))
 
+        # Set the input file path label
         self.input_file_label = customtkinter.CTkLabel(master=self.menu_root,
                                                        text="No File Selected ( .parquet required )",
                                                        font=("Roboto", 16),
                                                        justify="center")
         self.input_file_label.pack()
 
+        # Set the output type label
         self.output_type_label = customtkinter.CTkLabel(master=self.menu_root,
                                                         text="Select Output Type: ",
                                                         font=("Roboto", 16),
                                                         justify="center")
         self.output_type_label.pack(pady=(25, 5))
 
+        # Set the dropdown for the output file types
         self.file_type_select = customtkinter.CTkComboBox(master=self.menu_root,
                                                           values=["parquet", "json"],
                                                           font=("Roboto", 14),
@@ -73,12 +77,14 @@ class MainMenu:
 
         self.file_type_select.pack()
 
+        # Set the timeout slider label
         self.timeout_label = customtkinter.CTkLabel(master=self.menu_root,
                                                     text="Request Timeout (seconds): 100\nRecommended: >= 100",
                                                     font=("Roboto", 16),
                                                     justify="center")
         self.timeout_label.pack(pady=(35, 5))
 
+        # Set the timeout slider
         self.timeout_slider = customtkinter.CTkSlider(master=self.menu_root,
                                                       from_=1, to=180,
                                                       fg_color="#5e0023",
@@ -89,6 +95,7 @@ class MainMenu:
         self.timeout_slider.set(100)
         self.timeout_slider.pack(pady=(10, 0))
 
+        # Set the retry failed links checkbox
         self.retry_failed_checkbox = customtkinter.CTkCheckBox(master=self.menu_root,
                                                                text=" Retry Failed Connections",
                                                                font=("Roboto", 16),
@@ -96,20 +103,22 @@ class MainMenu:
                                                                hover_color="#630a2b")
         self.retry_failed_checkbox.pack(pady=(35, 5))
 
+        # Set the search for auxiliary links checkbox
         self.search_links_checkbox = customtkinter.CTkCheckBox(master=self.menu_root,
                                                                text=" Search Links in Page",
                                                                font=("Roboto", 16),
                                                                fg_color="#5e0023",
                                                                hover_color="#630a2b")
-        self.search_links_checkbox.select()
         self.search_links_checkbox.pack(pady=(10, 5))
 
+        # Set the status label
         self.status_label = customtkinter.CTkLabel(master=self.menu_root,
                                                    text="Program Not Started",
                                                    font=("Roboto", 16),
                                                    justify="center")
         self.status_label.pack(pady=(25, 5))
 
+        # Set the start button
         self.start_scrape_button = customtkinter.CTkButton(
             self.menu_root,
             height=40,
@@ -124,21 +133,13 @@ class MainMenu:
 
         self.start_scrape_button.pack(pady=(5, 0))
 
-        self.stop_scrape_button = customtkinter.CTkButton(
-            self.menu_root,
-            height=40,
-            width=160,
-            text='Stop',
-            command=self.stop_main_script,
-            fg_color='#5e0023',
-            hover_color='#630a2b',
-            font=("Roboto", 18),
-            state='disabled'
-        )
-
-        # self.stop_scrape_button.pack(pady=(15, 15))
-
     def open_input_file_dialog(self):
+        """
+        Prompts the user to choose a file path for the input file.
+
+        :return: None
+        """
+
         filetypes = [
             ('All files', '*.parquet')
         ]
@@ -154,9 +155,22 @@ class MainMenu:
             self.input_file_label.configure(text=filename, font=("Roboto", 11))
 
     def change_timeout_value(self, value):
+        """
+        Timeout slider callback. Sets the timeout value to whatever value is currently chosen.
+
+        :param value: slider value
+        :return: None
+        """
+
         self.timeout_label.configure(text=f"Request Timeout (seconds): {int(value)}\nRecommended: >= 100")
 
     def start_main_script(self):
+        """
+        Starts the main scraping script with all the current parameters.
+
+        :return: None
+        """
+
         self.start_time = time.time()
 
         main_script.start(self.input_file_path,
@@ -167,11 +181,6 @@ class MainMenu:
                           _scraping_failed=int(self.retry_failed_checkbox.get()))
 
         self.start_scrape_button.configure(state='disabled')
-        self.stop_scrape_button.configure(state='normal')
-
-    def stop_main_script(self):
-        self.start_scrape_button.configure(state='normal')
-        self.stop_scrape_button.configure(state='disabled')
 
     def update_menu(self):
         self.menu_root.update()
@@ -184,12 +193,13 @@ class MainMenu:
 def main():
     main_menu = MainMenu()
 
+    # Menu runs async, calling the update function of the script each iteration.
+    # When the script is done it will return 1 and the menu will close.
     while main_menu.running:
         main_menu.update_menu()
         resp = main_script.update()
 
         if resp == 1:
-            main_menu.stop_main_script()
             print(f"Final time: {time.time() - main_menu.start_time}")
 
             time.sleep(3)

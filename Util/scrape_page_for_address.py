@@ -56,22 +56,30 @@ def scrape_page(page):
 
     url = page.url
 
-    soup = BeautifulSoup(page.text, 'lxml')
+    try:
+        soup = BeautifulSoup(page.text, 'lxml')
+    except:
+        print(f"error parsing page... {url}")
+        return ResponseObj(_failed=True, _url=page.request.url)
 
-    final_street = [val for val in soup.find_all(string=street_regex_pattern) if len(val) <= 100]
-    if final_street:
-        final_street = re.search(street_regex_pattern, final_street[0].text).group(0)
-        final_street = re.sub(pobox_regex_pattern, '', final_street)
+    final_street = None
+    try:
+        final_street = [val for val in soup.find_all(string=street_regex_pattern) if len(val) <= 100]
+        if final_street:
+            final_street = re.search(street_regex_pattern, final_street[0].text).group(0)
+            final_street = re.sub(pobox_regex_pattern, '', final_street)
+    except:
+        print(f"Error getting street from page {url}")
 
-    final_zipcode = [val for val in soup.find_all(string=zipcode_regex_pattern) if len(val) <= 100]
+    final_zipcode = None
+    try:
+        final_zipcode = [val for val in soup.find_all(string=zipcode_regex_pattern) if len(val) <= 100]
 
-    if final_zipcode:
-        try:
+        if final_zipcode:
             final_zipcode = re.search(zipcode_regex_pattern, final_zipcode[0].text).string.strip()
-        except:
-            final_zipcode = re.search(zipcode_regex_pattern, final_zipcode[0]).string.strip()
-
-        final_zipcode = re.sub(pobox_regex_pattern, '', final_zipcode)
+            final_zipcode = re.sub(pobox_regex_pattern, '', final_zipcode)
+    except:
+        print(f"Error getting zipcode from page {url}")
 
     adr_by_street, adr_by_zipcode = None, None
     if final_street:
@@ -80,6 +88,10 @@ def scrape_page(page):
         adr_by_zipcode = geocode_address(final_zipcode)
 
     final_address = create_final_address(adr_by_street, adr_by_zipcode, final_street, final_zipcode)
+    if final_address:
+        not_null_count = len([field for field in final_address.__dict__.values() if field])
+        if not_null_count <= 3:
+            final_address = None
 
     if final_address is None:
         print(f"Didn't get address for this page... will try other links. {url}")
@@ -90,8 +102,9 @@ def scrape_page(page):
             aux_links = [link for link in aux_links if link is not None]
         except:
             print(f"!! couldn't get hrefs for {url}")
+            return ResponseObj(_failed=False, _url=url, _found_adr=None, _aux_links=[])
 
-        return ResponseObj(_failed=False, _url=url, _found_adr=None, _aux_links=aux_links)
+        return ResponseObj(_failed=False, _url=url, _found_adr=None, _aux_links=aux_links[:min(19, len(aux_links) - 1)])
 
     return ResponseObj(False, _url=url, _found_adr=True, _address=final_address)
 
