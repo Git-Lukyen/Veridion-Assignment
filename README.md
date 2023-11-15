@@ -2,7 +2,7 @@
 
 <h3>Summary</h3>
 
-You see the full documentation and thought process here: [Full Documentation and Thought Process](https://github.com/Git-Lukyen/Veridion-Assignment/blob/main/Documentation/Veridion%20Internship%20Project.pdf). <br><br>
+You can see the full documentation and thought process here: [Full Documentation and Thought Process](https://github.com/Git-Lukyen/Veridion-Assignment/blob/main/Documentation/Veridion%20Internship%20Project.pdf). <br><br>
 
 This project was made for the role of “Deeptech Engineer” Intern at Veridion. <br>
 My task was to get the addresses from a list of websites given in the assignment. <br>
