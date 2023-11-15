@@ -2,20 +2,22 @@ import re
 
 import geopy
 from bs4 import BeautifulSoup
-import requests
 from geopy import Nominatim
 
-headers = {
-    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
-}
-
+# Regex pattern that finds Zipcodes
 zipcode_regex_pattern = re.compile(r"(^|\s)[a-zA-Z]{2} \d{4,6}(?:\s|$)")
+
+# Regex pattern that finds Streets
 street_regex_pattern = re.compile(
     r"(?i)(^|\s)\d{2,7}\b\s+.{5,30}\b\s+(?:road|rd|way|street|st|str|avenue|ave|boulevard|blvd|lane|ln|drive|dr|terrace|ter|place|pl|court|ct)(?:\.|\s|$)")
-number_regex_pattern = re.compile(r"\d+")
-rnumber_regex_pattern = re.compile(r"\d+")
+
+# Regex pattern that finds Postal Offices
 pobox_regex_pattern = re.compile(r"(?i)(?:po|p.o.)\s+(?:box)")
 
+# Regex pattern that finds a number
+number_regex_pattern = re.compile(r"\d+")
+
+# Initializing geolocator
 geopy.geocoders.options.default_user_agent = "Company-Location-Finder"
 geolocator = Nominatim()
 
@@ -31,6 +33,7 @@ class CompanyAddress:
         self.road_numbers = ''
 
 
+# This class is used for sending a response back to the main script
 class ResponseObj:
     def __init__(self, _failed, _url, _found_adr=None, _aux_links=None, _address=CompanyAddress()):
         self.failed = _failed
@@ -40,11 +43,19 @@ class ResponseObj:
         self.url = _url
 
 
+# Initialization
 def start():
     pass
 
 
 def scrape_page(page):
+    """
+    Scrape the page for the company's address.
+    :param page: request response
+    :return: ResponseObj
+    """
+
+    # Try to see if the current page had a valid response
     try:
         status_code = page.status_code
         if status_code != 200:
@@ -56,12 +67,14 @@ def scrape_page(page):
 
     url = page.url
 
+    # Try to parse the page's content
     try:
         soup = BeautifulSoup(page.text, 'lxml')
     except:
         print(f"error parsing page... {url}")
         return ResponseObj(_failed=True, _url=page.request.url)
 
+    # Search for a valid formatted street
     final_street = None
     try:
         final_street = [val for val in soup.find_all(string=street_regex_pattern) if len(val) <= 100]
@@ -71,6 +84,7 @@ def scrape_page(page):
     except:
         print(f"Error getting street from page {url}")
 
+    # Search for a valid formatted zipcode
     final_zipcode = None
     try:
         final_zipcode = [val for val in soup.find_all(string=zipcode_regex_pattern) if len(val) <= 100]
@@ -81,18 +95,21 @@ def scrape_page(page):
     except:
         print(f"Error getting zipcode from page {url}")
 
+    # Try to get the full address from the found zipcode / street
     adr_by_street, adr_by_zipcode = None, None
     if final_street:
         adr_by_street = geocode_address(final_street)
     if final_zipcode:
         adr_by_zipcode = geocode_address(final_zipcode)
 
+    # Create the final address and check for if it's probable that it's correct
     final_address = create_final_address(adr_by_street, adr_by_zipcode, final_street, final_zipcode)
     if final_address:
         not_null_count = len([field for field in final_address.__dict__.values() if field])
         if not_null_count <= 3:
             final_address = None
 
+    # If no address was found try to search the address on other links from the page with the same domain
     if final_address is None:
         print(f"Didn't get address for this page... will try other links. {url}")
         aux_links = None
@@ -110,6 +127,12 @@ def scrape_page(page):
 
 
 def mod_href(url, href):
+    """
+    Return a modified url based on if the href has the same domain or is a redirect.
+    :param url: page url
+    :param href: auxiliary url
+    :return: modified url
+    """
     if href[0] == '/':
         return url.join(href)
     elif re.search(f"{url}.{{2,}}", href):
@@ -117,6 +140,11 @@ def mod_href(url, href):
 
 
 def geocode_address(query):
+    """
+    Try to get a valid address from a query.
+    :param query: query as string
+    :return: address | None
+    """
     global geolocator
 
     try:
@@ -128,6 +156,14 @@ def geocode_address(query):
 
 
 def create_final_address(adr_by_street, adr_by_zipcode, street, zipcode):
+    """
+    Combine the 2 addresses into one final address.
+    :param adr_by_street: address found by street
+    :param adr_by_zipcode: address found by zipcode
+    :param street: street query used
+    :param zipcode: zipcode query used
+    :return: final address
+    """
     if not adr_by_street and not adr_by_zipcode:
         return None
 
@@ -160,6 +196,14 @@ def create_final_address(adr_by_street, adr_by_zipcode, street, zipcode):
 
 
 def choose_field(dict1, dict2, field, prio_first):
+    """
+    Choose one of 2 fields from an address based on priority.
+    :param dict1: address 1
+    :param dict2: address 2
+    :param field: field to choose
+    :param prio_first: prioritize first if True
+    :return: final field
+    """
     field1, field2 = None, None
     if dict1 and field in dict1:
         field1 = dict1[field]

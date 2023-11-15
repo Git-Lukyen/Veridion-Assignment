@@ -20,7 +20,6 @@ def create_output_file(output_type, results):
         create_json_output(results)
 
 
-#   TODO: finish documentation
 def create_json_output(results):
     json_results = []
     for key in results:
@@ -47,6 +46,7 @@ def create_json_output(results):
 def create_parquet_output(results):
     data = []
 
+    # Create a dataframe with the specified columns filled with the data from results
     for url in results:
         temp = [url]
         temp.extend([format_field(val) for val in
@@ -60,6 +60,7 @@ def create_parquet_output(results):
 
 
 def format_field(field):
+    # Remove bugged non-breaking spaces
     if field is None:
         return ''
     else:
